@@ -1,0 +1,9 @@
+*.gguf
+models/
+*.ckpt
+*.safetensors
+*.pt
+*.bin
+*.log
+.env
+__pycache__/

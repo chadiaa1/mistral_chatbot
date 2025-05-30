@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Assistant CBT - Thérapie Cognitivo-Comportementale</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .chat-container {
+            width: 90%;
+            max-width: 800px;
+            height: 80vh;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            backdrop-filter: blur(10px);
+        }
+
+        .chat-header {
+            background: linear-gradient(90deg, #4a90e2, #7b68ee);
+            color: white;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .chat-header h1 {
+            font-size: 1.8em;
+            margin-bottom: 5px;
+        }
+
+        .chat-header p {
+            font-size: 0.9em;
+            opacity: 0.9;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #4CAF50;
+            margin-left: 10px;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .message {
+            max-width: 85%;
+            padding: 15px 20px;
+            border-radius: 20px;
+            word-wrap: break-word;
+            animation: slideIn 0.3s ease-out;
+            line-height: 1.5;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .user-message {
+            align-self: flex-end;
+            background: linear-gradient(135deg, #4a90e2, #7b68ee);
+            color: white;
+            border-bottom-right-radius: 5px;
+        }
+
+        .bot-message {
+            align-self: flex-start;
+            background: #f8f9fa;
+            color: #333;
+            border: 1px solid #e9ecef;
+            border-bottom-left-radius: 5px;
+        }
+
+        .message-time {
+            font-size: 0.7em;
+            opacity: 0.7;
+            margin-top: 5px;
+        }
+
+        .chat-input-container {
+            padding: 20px;
+            background: #f8f9fa;
+            border-top: 1px solid #e9ecef;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .chat-input {
+            flex: 1;
+            padding: 15px 20px;
+            border: 2px solid #e9ecef;
+            border-radius: 25px;
+            font-size: 1em;
+            outline: none;
+            transition: all 0.3s ease;
+            resize: none;
+            min-height: 50px;
+            max-height: 120px;
+            overflow-y: auto;
+        }
+
+        .chat-input:focus {
+            border-color: #4a90e2;
+            box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.1);
+        }
+
+        .send-button {
+            padding: 15px 25px;
+            background: linear-gradient(135deg, #4a90e2, #7b68ee);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            min-width: 80px;
+        }
+
+        .send-button:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(74, 144, 226, 0.4);
+        }
+
+        .send-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .typing-indicator {
+            align-self: flex-start;
+            padding: 15px 20px;
+            background: #f8f9fa;
+            border-radius: 20px;
+            border-bottom-left-radius: 5px;
+            display: none;
+        }
+
+        .typing-dots {
+            display: inline-flex;
+            gap: 4px;
+        }
+
+        .typing-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #999;
+            animation: typing 1.4s infinite ease-in-out;
+        }
+
+        .typing-dot:nth-child(1) { animation-delay: -0.32s; }
+        .typing-dot:nth-child(2) { animation-delay: -0.16s; }
+
+        @keyframes typing {
+            0%, 80%, 100% {
+                transform: scale(0);
+                opacity: 0.5;
+            }
+            40% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        .control-buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .reset-button, .status-button {
+            padding: 8px 15px;
+            background: #6c757d;
+            color: white;
+            border: none;
+            border-radius: 15px;
+            cursor: pointer;
+            font-size: 0.8em;
+            transition: all 0.3s ease;
+        }
+
+        .reset-button:hover, .status-button:hover {
+            background: #545b62;
+        }
+
+        .welcome-message {
+            text-align: center;
+            color: #666;
+            font-style: italic;
+            margin: 20px 0;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 15px;
+            border-left: 4px solid #4a90e2;
+        }
+
+        .suggestion-pills {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 15px;
+            justify-content: flex-start;
+        }
+
+        .suggestion-pill {
+            background: rgba(74, 144, 226, 0.1);
+            color: #4a90e2;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(74, 144, 226, 0.3);
+        }
+
+        .suggestion-pill:hover {
+            background: rgba(74, 144, 226, 0.2);
+            transform: translateY(-1px);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .chat-container {
+                width: 95%;
+                height: 90vh;
+                margin: 10px;
+            }
+            
+            .message {
+                max-width: 90%;
+            }
+            
+            .chat-header h1 {
+                font-size: 1.4em;
+            }
+
+            .suggestion-pills {
+                justify-content: center;
+            }
+        }
+
+        /* Scrollbar personnalisée */
+        .chat-messages::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .chat-messages::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+
+        .chat-messages::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 10px;
+        }
+
+        .chat-messages::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
+        }
+
+        .cbt-tip {
+            background: linear-gradient(135deg, #e8f4f8, #f0f8ff);
+            border-left: 4px solid #4a90e2;
+            padding: 12px 15px;
+            margin: 10px 0;
+            border-radius: 8px;
+            font-size: 0.9em;
+            color: #2c5282;
+        }
+
+        .cbt-technique {
+            background: linear-gradient(135deg, #f0fff4, #f7fffa);
+            border-left: 4px solid #48bb78;
+            padding: 12px 15px;
+            margin: 10px 0;
+            border-radius: 8px;
+            font-size: 0.9em;
+            color: #2f855a;
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <div class="chat-header">
+            <h1>Assistant CBT <span class="status-indicator" id="statusIndicator"></span></h1>
+            <p>Votre compagnon de thérapie cognitivo-comportementale</p>
+        </div>
+        
+        <div class="chat-messages" id="chatMessages">
+            <div class="welcome-message">
+                <h3>👋 Bonjour et bienvenue !</h3>
+                <p>Je suis votre assistant CBT, spécialisé en thérapie cognitivo-comportementale. 
+                Je suis là pour vous écouter et vous accompagner avec bienveillance.</p>
+                <p><strong>Partagez ce qui vous préoccupe aujourd'hui</strong></p>
+                
+                <div class="suggestion-pills">
+                    <span class="suggestion-pill" onclick="sendSuggestion('Je me sens anxieux(se)')">Je me sens anxieux(se)</span>
+                    <span class="suggestion-pill" onclick="sendSuggestion('J\'ai des pensées négatives')">J'ai des pensées négatives</span>
+                    <span class="suggestion-pill" onclick="sendSuggestion('Je traverse une période difficile')">Période difficile</span>
+                    <span class="suggestion-pill" onclick="sendSuggestion('J\'aimerais gérer mon stress')">Gérer le stress</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="typing-indicator" id="typingIndicator">
+            <span class="typing-dots">
+                <span class="typing-dot"></span>
+                <span class="typing-dot"></span>
+                <span class="typing-dot"></span>
+            </span>
+            L'assistant réfléchit...
+        </div>
+        
+        <div class="chat-input-container">
+            <div class="control-buttons">
+                <button class="reset-button" onclick="resetConversation()">🔄 Nouveau</button>
+                <button class="status-button" onclick="checkStatus()">📊 Statut</button>
+            </div>
+            <textarea id="messageInput" class="chat-input" 
+                   placeholder="Exprimez-vous librement..." 
+                   maxlength="1000" rows="1"></textarea>
+            <button class="send-button" id="sendButton" onclick="sendMessage()">Envoyer</button>
+        </div>
+    </div>
+
+    <script>
+        let isTyping = false;
+        let conversationContext = [];
+
+        // Exemples de réponses CBT plus naturelles
+        const cbtResponses = {
+            anxiety: [
+                "Je comprends que vous ressentez de l'anxiété. C'est une émotion difficile à vivre. Pouvez-vous me parler de ce qui vous préoccupe en ce moment ?",
+                "L'anxiété peut être épuisante. Prenons un moment pour identifier ensemble ce qui déclenche ces sensations.",
+                "Merci de partager cela avec moi. L'anxiété est souvent le signal que notre esprit essaie de nous protéger de quelque chose. Qu'est-ce qui vous vient à l'esprit quand vous ressentez cette anxiété ?"
+            ],
+            negative_thoughts: [
+                "Ces pensées négatives doivent être pesantes pour vous. En CBT, nous savons que nos pensées influencent nos émotions. Quelle est la pensée qui revient le plus souvent ?",
+                "Il est courageux de reconnaître ces pensées négatives. Souvent, elles nous semblent vraies, mais nous pouvons apprendre à les questionner ensemble.",
+                "Ces pensées automatiques peuvent être très persistantes. Essayons de comprendre d'où elles viennent et comment elles affectent votre quotidien."
+            ],
+            difficult_period: [
+                "Traverser une période difficile demande beaucoup de courage. Vous êtes là, et c'est déjà un pas important. Que ressentez-vous le plus en ce moment ?",
+                "Les périodes difficiles font partie de la vie, même si elles semblent interminables. Qu'est-ce qui vous aide habituellement à faire face aux défis ?",
+                "Je suis là pour vous accompagner dans cette période. Parfois, parler de ce qu'on vit peut déjà alléger le fardeau."
+            ],
+            stress: [
+                "Le stress peut vraiment affecter notre bien-être. Identifier ce qui nous stresse est déjà un premier pas vers un meilleur équilibre. D'où vient principalement votre stress ?",
+                "Apprendre à gérer le stress est un processus. Chacun a ses propres déclencheurs et ses propres ressources. Qu'est-ce qui vous stresse le plus actuellement ?",
+                "Le stress chronique peut être épuisant. En CBT, nous travaillons sur les pensées et comportements qui l'alimentent. Que remarquez-vous dans vos réactions au stress ?"
+            ]
+        };
+
+        // Focus automatique sur l'input
+        document.getElementById('messageInput').focus();
+
+        // Auto-resize du textarea
+        const textarea = document.getElementById('messageInput');
+        textarea.addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = (this.scrollHeight) + 'px';
+        });
+
+        // Envoyer avec Entrée (Shift+Entrée pour nouvelle ligne)
+        textarea.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+
+        function sendSuggestion(suggestion) {
+            document.getElementById('messageInput').value = suggestion;
+            sendMessage();
+        }
+
+        function addMessage(message, isUser = false, withSuggestions = false) {
+            const messagesContainer = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${isUser ? 'user-message' : 'bot-message'}`;
+            
+            const now = new Date();
+            const timeString = now.toLocaleTimeString('fr-FR', { 
+                hour: '2-digit', 
+                minute: '2-digit' 
+            });
+            
+            // Traitement des messages avec formatage CBT
+            let formattedMessage = message
+                .replace(/💡 (.*?):/g, '<div class="cbt-tip">💡 <strong>$1</strong></div>')
+                .replace(/🧠 (.*?):/g, '<div class="cbt-technique">🧠 <strong>$1</strong></div>')
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                .replace(/\n\n/g, '<br><br>')
+                .replace(/\n/g, '<br>');
+            
+            messageDiv.innerHTML = `
+                <div>${formattedMessage}</div>
+                <div class="message-time">${timeString}</div>
+            `;
+            
+            messagesContainer.appendChild(messageDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+            // Ajouter au contexte de conversation
+            if (!isUser) {
+                conversationContext.push({
+                    type: 'bot',
+                    message: message,
+                    timestamp: now
+                });
+            }
+        }
+
+        function showTypingIndicator() {
+            document.getElementById('typingIndicator').style.display = 'block';
+            const messagesContainer = document.getElementById('chatMessages');
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            isTyping = true;
+        }
+
+        function hideTypingIndicator() {
+            document.getElementById('typingIndicator').style.display = 'none';
+            isTyping = false;
+        }
+
+        function generateCBTResponse(userMessage) {
+            const message = userMessage.toLowerCase();
+            
+            // Analyse simple du sentiment/thème
+            if (message.includes('anxieux') || message.includes('anxiété') || message.includes('angoisse')) {
+                return cbtResponses.anxiety[Math.floor(Math.random() * cbtResponses.anxiety.length)];
+            } else if (message.includes('négatif') || message.includes('négatifs') || message.includes('sombre') || message.includes('pessimiste')) {
+                return cbtResponses.negative_thoughts[Math.floor(Math.random() * cbtResponses.negative_thoughts.length)];
+            } else if (message.includes('difficile') || message.includes('dur') || message.includes('traverser') || message.includes('problème')) {
+                return cbtResponses.difficult_period[Math.floor(Math.random() * cbtResponses.difficult_period.length)];
+            } else if (message.includes('stress') || message.includes('stressé') || message.includes('pression') || message.includes('débordé')) {
+                return cbtResponses.stress[Math.floor(Math.random() * cbtResponses.stress.length)];
+            }
+            
+            // Réponses génériques empathiques
+            const genericResponses = [
+                "Merci de partager cela avec moi. Je vous écoute. Pouvez-vous m'en dire plus sur ce que vous ressentez ?",
+                "Je comprends que ce soit important pour vous. Prenons le temps d'explorer cela ensemble.",
+                "Vos émotions sont légitimes. En CBT, nous considérons que comprendre le lien entre nos pensées et nos émotions est essentiel. Que pensez-vous de cette situation ?",
+                "Il faut du courage pour exprimer ce que vous ressentez. Comment cette situation vous affecte-t-elle au quotidien ?",
+                "Je vous remercie de votre confiance. En thérapie cognitivo-comportementale, nous explorons comment nos pensées influencent nos ressentis. Qu'est-ce qui vous traverse l'esprit à ce sujet ?"
+            ];
+            
+            return genericResponses[Math.floor(Math.random() * genericResponses.length)];
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const sendButton = document.getElementById('sendButton');
+            const message = input.value.trim();
+            
+            if (!message || isTyping) return;
+            
+            // Désactiver l'interface
+            input.disabled = true;
+            sendButton.disabled = true;
+            
+            // Ajouter le message utilisateur
+            addMessage(message, true);
+            conversationContext.push({
+                type: 'user',
+                message: message,
+                timestamp: new Date()
+            });
+            
+            input.value = '';
+            input.style.height = 'auto';
+            
+            // Afficher l'indicateur de frappe
+            showTypingIndicator();
+            
+            try {
+                // Simuler un appel à l'API ou utiliser la vraie API
+                const response = await simulateCBTResponse(message);
+                
+                // Délai réaliste pour l'effet de frappe
+                setTimeout(() => {
+                    hideTypingIndicator();
+                    addMessage(response);
+                    updateStatusIndicator(true);
+                }, Math.max(800, Math.random() * 1200 + 600));
+                
+            } catch (error) {
+                hideTypingIndicator();
+                addMessage('Je rencontre une difficulté technique. Pouvons-nous reprendre dans un moment ?');
+                updateStatusIndicator(false);
+                console.error('Erreur:', error);
+            } finally {
+                // Réactiver l'interface
+                input.disabled = false;
+                sendButton.disabled = false;
+                input.focus();
+            }
+        }
+
+        async function simulateCBTResponse(userMessage) {
+            // Cette fonction simulerait l'appel à votre backend
+            // Pour la démo, nous utilisons les réponses prédéfinies
+            return generateCBTResponse(userMessage);
+        }
+
+        async function resetConversation() {
+            if (confirm('Voulez-vous vraiment commencer une nouvelle conversation ?')) {
+                conversationContext = [];
+                document.getElementById('chatMessages').innerHTML = `
+                    <div class="welcome-message">
+                        <h3>🔄 Nouvelle conversation</h3>
+                        <p>Parfait ! Nous repartons sur de nouvelles bases.</p>
+                        <p><strong>De quoi aimeriez-vous parler aujourd'hui ?</strong></p>
+                        
+                        <div class="suggestion-pills">
+                            <span class="suggestion-pill" onclick="sendSuggestion('Je me sens anxieux(se)')">Je me sens anxieux(se)</span>
+                            <span class="suggestion-pill" onclick="sendSuggestion('J\'ai des pensées négatives')">J'ai des pensées négatives</span>
+                            <span class="suggestion-pill" onclick="sendSuggestion('Je traverse une période difficile')">Période difficile</span>
+                            <span class="suggestion-pill" onclick="sendSuggestion('J\'aimerais gérer mon stress')">Gérer le stress</span>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        async function checkStatus() {
+            const statusMessage = `
+                📊 <strong>État de la session</strong><br>
+                🤖 Assistant CBT: ✅ Actif<br>
+                💬 Messages échangés: ${conversationContext.length}<br>
+                ⏰ Dernière activité: ${new Date().toLocaleString('fr-FR')}<br><br>
+                <div class="cbt-tip">💡 <strong>Rappel CBT:</strong> Nos pensées, émotions et comportements sont interconnectés. Explorer ces liens peut nous aider à mieux nous comprendre.</div>
+            `;
+            
+            addMessage(statusMessage);
+            updateStatusIndicator(true);
+        }
+
+        function updateStatusIndicator(isConnected) {
+            const indicator = document.getElementById('statusIndicator');
+            indicator.style.background = isConnected ? '#4CAF50' : '#f44336';
+        }
+
+        // Initialisation
+        updateStatusIndicator(true);
+    </script>
+</body>
+</html>
